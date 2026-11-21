@@ -224,7 +224,7 @@
     <p class="producte" id="nomProducte">Producte</p>
     <p class="codi" id="codiProducte"></p>
 
-    <form id="formSolicitud">
+    <form id="formSolicitud" action="https://formsubmit.co/cartaxo@clinic.cat" method="POST">
       <span class="campo-label">Quantitat</span>
       <div class="stepper">
         <button type="button" id="btnMenys" aria-label="Restar unitat">
@@ -241,6 +241,7 @@
       <input type="hidden" name="_subject" id="hSubject" value="Nova sol·licitud de material">
       <input type="hidden" name="_template" value="table">
       <input type="hidden" name="_captcha" value="false">
+      <input type="hidden" name="_next" id="hNext" value="">
 
       <button type="submit" class="confirmar" id="btnConfirmar">Confirmar sol·licitud</button>
       <p class="aviso" id="aviso"></p>
@@ -256,9 +257,6 @@
 </div>
 
 <script>
-  // ⚠️ Substitueix pel teu correu real abans de publicar la pàgina
-  const CORREU_DESTI = "cartaxo@clinic.cat";
-
   const params = new URLSearchParams(window.location.search);
   const producte = params.get("producte") || "Producte no especificat";
   const codi = params.get("codi") || "";
@@ -283,47 +281,20 @@
   const aviso = document.getElementById("aviso");
   const btn = document.getElementById("btnConfirmar");
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  // Enviament natiu del formulari (sense fetch): evita problemes de CORS i bloquejadors.
+  // Després de l'enviament, FormSubmit retorna l'usuari a aquesta mateixa pàgina amb ?enviat=1.
+  document.getElementById("hNext").value =
+    window.location.origin + window.location.pathname + "?enviat=1";
 
-    if (CORREU_DESTI.includes("TU-EMAIL")) {
-      aviso.textContent = "Falta configurar el correu de destinació al codi de la pàgina.";
-      aviso.className = "aviso error";
-      return;
-    }
+  if (params.get("enviat") === "1") {
+    document.getElementById("vista-formulario").classList.add("hidden");
+    document.getElementById("vista-ok").classList.remove("hidden");
+  }
 
+  form.addEventListener("submit", () => {
     btn.disabled = true;
     aviso.textContent = "Enviant...";
     aviso.className = "aviso";
-
-    const dades = {
-      producte: document.getElementById("hProducte").value,
-      codi: document.getElementById("hCodi").value,
-      quantitat: quantitatInput.value,
-      _subject: document.getElementById("hSubject").value,
-      _template: "table",
-      _captcha: "false"
-    };
-
-    try {
-      const resposta = await fetch("https://formsubmit.co/ajax/" + CORREU_DESTI, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(dades)
-      });
-
-      if (!resposta.ok) throw new Error("Error en l'enviament");
-
-      document.getElementById("vista-formulario").classList.add("hidden");
-      document.getElementById("vista-ok").classList.remove("hidden");
-    } catch (err) {
-      aviso.textContent = "No s'ha pogut enviar. Comprova la connexió i torna-ho a provar.";
-      aviso.className = "aviso error";
-      btn.disabled = false;
-    }
   });
 </script>
 
