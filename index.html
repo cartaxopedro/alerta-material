@@ -224,7 +224,7 @@
     <p class="producte" id="nomProducte">Producte</p>
     <p class="codi" id="codiProducte"></p>
 
-    <form id="formSolicitud" action="https://formsubmit.co/cartaxo@clinic.cat" method="POST">
+    <form id="formSolicitud">
       <span class="campo-label">Quantitat</span>
       <div class="stepper">
         <button type="button" id="btnMenys" aria-label="Restar unitat">
@@ -238,10 +238,6 @@
 
       <input type="hidden" name="producte" id="hProducte">
       <input type="hidden" name="codi" id="hCodi">
-      <input type="hidden" name="_subject" id="hSubject" value="Nova sol·licitud de material">
-      <input type="hidden" name="_template" value="table">
-      <input type="hidden" name="_captcha" value="false">
-      <input type="hidden" name="_next" id="hNext" value="">
 
       <button type="submit" class="confirmar" id="btnConfirmar">Confirmar sol·licitud</button>
       <p class="aviso" id="aviso"></p>
@@ -265,7 +261,6 @@
   document.getElementById("codiProducte").textContent = codi ? "Codi: " + codi : "";
   document.getElementById("hProducte").value = producte;
   document.getElementById("hCodi").value = codi;
-  document.getElementById("hSubject").value = "Sol·licitud de material: " + producte;
 
   const quantitatInput = document.getElementById("quantitat");
   document.getElementById("btnMenys").addEventListener("click", () => {
@@ -281,20 +276,45 @@
   const aviso = document.getElementById("aviso");
   const btn = document.getElementById("btnConfirmar");
 
-  // Enviament natiu del formulari (sense fetch): evita problemes de CORS i bloquejadors.
-  // Després de l'enviament, FormSubmit retorna l'usuari a aquesta mateixa pàgina amb ?enviat=1.
-  document.getElementById("hNext").value =
-    window.location.origin + window.location.pathname + "?enviat=1";
+  // URL del flux de Power Automate (desencadenador "Quan es rep una sol·licitud HTTP").
+  // Substitueix el text de sota per la URL que et dóna el flux.
+  const FLOW_URL = "https://default667ff741fbe4468b953ffc3cd801ae.34.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/26/workflows/695d8d6a703b4732967f1b6979482d6c/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=24-n1YMfSmmReTTmdmdWIYa_UF61chRvZjtt7kdUhx8";
 
-  if (params.get("enviat") === "1") {
-    document.getElementById("vista-formulario").classList.add("hidden");
-    document.getElementById("vista-ok").classList.remove("hidden");
-  }
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-  form.addEventListener("submit", () => {
+    if (FLOW_URL.startsWith("PEGA_AQUI")) {
+      aviso.textContent = "Falta configurar l'enllaç del flux de Power Automate.";
+      aviso.className = "aviso error";
+      return;
+    }
+
     btn.disabled = true;
     aviso.textContent = "Enviant...";
     aviso.className = "aviso";
+
+    const dades = {
+      producte: document.getElementById("hProducte").value,
+      codi: document.getElementById("hCodi").value,
+      quantitat: quantitatInput.value,
+      enviatEl: new Date().toISOString()
+    };
+
+    try {
+      // mode "no-cors" i cos en text pla: peticio simple que no depen de les capcaleres CORS del flux.
+      await fetch(FLOW_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(dades)
+      });
+
+      document.getElementById("vista-formulario").classList.add("hidden");
+      document.getElementById("vista-ok").classList.remove("hidden");
+    } catch (err) {
+      aviso.textContent = "No s'ha pogut enviar. Comprova la connexió i torna-ho a provar.";
+      aviso.className = "aviso error";
+      btn.disabled = false;
+    }
   });
 </script>
 
